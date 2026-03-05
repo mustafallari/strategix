@@ -1,0 +1,637 @@
+:root {
+  /* Dark Theme (Default) */
+  --bg-primary: #28231f;
+  --bg-secondary: #322b25;
+  --text-primary: #f2ebdc;
+  --text-secondary: #c3b49b;
+  --board-light: #f0d9b5;
+  --board-dark: #b58863;
+  --highlight-move: rgba(255, 255, 0, 0.5);
+  --highlight-check: rgba(255, 0, 0, 0.6);
+  --highlight-selected: rgba(20, 85, 30, 0.5);
+  --highlight-valid: rgba(100, 200, 100, 0.4);
+  
+  /* Power Button Colors */
+  --power-bg: #000;
+  --power-border: #333;
+  --power-symbol: #555;
+  --power-hover: #00ff00;
+  --power-active: #ff0000;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f0f0f0;
+  --bg-secondary: #ffffff;
+  --text-primary: #2c2c2c;
+  --text-secondary: #555555;
+  --board-light: #dee3e6;
+  --board-dark: #8ca2ad;
+  
+  /* Power Button Colors - Light Theme */
+  --power-bg: #fff;
+  --power-border: #666;
+  --power-symbol: #999;
+  --power-hover: #00aa00;
+  --power-active: #cc0000;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  height: 100vh; /* Full viewport height */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Prevent scrolling */
+}
+
+/* --- Layout Structure --- */
+
+.player-zone {
+  background-color: var(--bg-secondary);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  z-index: 10;
+  flex-shrink: 0; /* Don't shrink controls */
+}
+
+.top-player {
+  border-bottom: 2px solid #444;
+  /* Rotate top player UI for two-player local mode */
+  transform: rotate(180deg); 
+}
+
+.bottom-player {
+  border-top: 2px solid #444;
+}
+
+.game-area-center {
+  flex: 1; /* Take remaining space */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0,0,0,0.2);
+  padding: 10px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* --- Player Controls UI --- */
+
+.player-toggle {
+  display: none; /* Hidden by default, maybe for mobile accordion if needed */
+}
+
+.player-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.player-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.player-status {
+  font-weight: bold;
+  opacity: 0.7;
+}
+.player-status.active {
+  opacity: 1;
+  color: #4CAF50; /* Green for active */
+}
+
+.game-status-inline {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  background: rgba(0,0,0,0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.turn-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+}
+.turn-badge.white { background-color: #fff; color: #000; }
+.turn-badge.black { background-color: #000; color: #fff; border: 1px solid #fff; }
+
+.game-info {
+  display: flex;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Button Container */
+.player-game-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Bootstrap Button Overrides for Compactness */
+.player-game-controls .btn {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+/* Ensure checkbox labels look like buttons */
+.control-btn.btn {
+  margin: 0;
+  cursor: pointer;
+}
+.control-btn input[type="checkbox"] {
+  margin: 0;
+  accent-color: currentColor;
+}
+
+/* --- Chessboard --- */
+
+.chess-board-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.chess-board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  /* Responsive square sizing */
+  width: min(95vw, 95vh, 600px);
+  height: min(95vw, 95vh, 600px);
+  border: 4px solid #4a3020;
+  user-select: none;
+  background-color: var(--board-light);
+}
+
+.square {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.square.light { background-color: var(--board-light); color: var(--board-dark); }
+.square.dark { background-color: var(--board-dark); color: var(--board-light); }
+
+/* Pieces */
+.piece {
+  width: 90%;
+  height: 90%;
+  z-index: 5;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+.piece:active {
+  transform: scale(1.1);
+}
+
+/* Board Flip State */
+.chess-board.flipped {
+  transform: rotate(180deg);
+}
+.chess-board.flipped .piece {
+  transform: rotate(180deg);
+}
+.chess-board.flipped .square::after { /* Flip coordinates if we add them */
+  transform: rotate(180deg);
+}
+
+/* Coordinate display */
+.square::before {
+  content: attr(data-coord);
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  font-size: 0.7rem;
+  color: rgba(0, 0, 0, 0.6);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.chess-board.coords-uppercase .square::before {
+  text-transform: uppercase;
+}
+
+/* Dark theme coordinates */
+[data-theme="dark"] .square::before {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* --- Highlights & Visual Aids --- */
+
+.square.selected {
+  background-color: var(--highlight-selected) !important;
+}
+
+.square.valid-move::before {
+  content: '';
+  position: absolute;
+  width: 24%;
+  height: 24%;
+  background-color: rgba(0, 0, 0, 0.25);
+  border-radius: 50%;
+  z-index: 4;
+}
+
+.square.valid-capture {
+  background-color: rgba(255, 60, 60, 0.4) !important;
+  box-shadow: inset 0 0 10px rgba(255,0,0,0.5);
+}
+
+.square.attack-pattern {
+  outline: 2px dashed rgba(0, 0, 0, 0.35);
+  outline-offset: -2px;
+}
+
+.square.move-indicator::after {
+  content: '';
+  position: absolute;
+  width: 28%;
+  height: 28%;
+  background-color: rgba(0, 0, 0, 0.25);
+  border-radius: 50%;
+  z-index: 4;
+}
+
+.square.capture-indicator::after {
+  content: '';
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  border: 3px solid rgba(255, 0, 0, 0.6);
+  border-radius: 50%;
+  z-index: 4;
+}
+
+.square.check {
+  background-color: var(--highlight-check) !important;
+  animation: pulse-red 1s infinite;
+}
+
+.square.danger-zone {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 0, 0, 0.1),
+    rgba(255, 0, 0, 0.1) 10px,
+    rgba(255, 0, 0, 0.2) 10px,
+    rgba(255, 0, 0, 0.2) 20px
+  );
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: inset 0 0 0 0 rgba(255, 0, 0, 0.7); }
+  70% { box-shadow: inset 0 0 0 10px rgba(255, 0, 0, 0); }
+  100% { box-shadow: inset 0 0 0 0 rgba(255, 0, 0, 0); }
+}
+
+/* --- Toasts / Notifications --- */
+
+.toast-container {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  pointer-events: none;
+  width: 80%;
+  max-width: 400px;
+  align-items: center;
+}
+
+.top-toast {
+  top: 15%;
+  /* If top player is rotated 180, we might need to handle toast rotation too if they appear inside player zone.
+     But these are body-level. So they are upright.
+     If top player needs to read them, they should be rotated?
+     The prompt said "show on each player side /zone remember to flip text".
+     Currently they are in body. I might need to rotate top-toast container?
+  */
+}
+.top-toast .toast {
+  transform: rotate(180deg);
+}
+
+.bottom-toast {
+  bottom: 15%;
+}
+
+.toast {
+  background-color: rgba(30, 30, 30, 0.95);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: auto;
+  border-left: 5px solid #888;
+}
+.toast.show { opacity: 1; }
+
+.toast.warning { border-color: #ffc107; }
+.toast.success { border-color: #198754; }
+.toast.info { border-color: #0dcaf0; }
+
+.toast-title { font-weight: bold; font-size: 0.9rem; margin-bottom: 2px; }
+.toast-description { font-size: 0.85rem; }
+
+/* --- Pawn Promotion Modal --- */
+.promotion-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.promotion-content {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+  text-align: center;
+  max-width: 90%;
+  border: 2px solid var(--board-dark);
+}
+
+.promotion-title {
+  margin-bottom: 15px;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.promotion-pieces {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.promotion-piece {
+  width: 60px;
+  height: 60px;
+  background-color: var(--board-light);
+  border-radius: 8px;
+  padding: 5px;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2px solid transparent;
+}
+
+.promotion-piece:hover {
+  transform: scale(1.1);
+  background-color: var(--highlight-selected);
+  border-color: var(--highlight-move);
+}
+
+.promotion-piece img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* --- Responsiveness --- */
+
+@media (max-width: 600px) {
+  .player-zone { padding: 5px; }
+  .game-status-inline { font-size: 0.8rem; }
+  .player-game-controls .btn { 
+    padding: 0.2rem 0.5rem; 
+    font-size: 0.75rem; 
+  }
+  .chess-board {
+    /* Ensure it fits on small screens */
+    width: 94vw;
+    height: 94vw;
+  }
+  
+  .promotion-piece {
+    width: 50px;
+    height: 50px;
+  }
+}
+
+/* --- Game Over Modal --- */
+.game-over-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  backdrop-filter: blur(3px);
+}
+
+.game-over-content {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  max-width: 90%;
+  border: 3px solid var(--board-dark);
+  animation: modalAppear 0.3s ease-out;
+}
+
+.game-over-title {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: var(--highlight-check);
+  text-transform: uppercase;
+}
+
+.game-over-message {
+  font-size: 1.5rem;
+  margin-bottom: 25px;
+  font-weight: 600;
+}
+
+.game-over-content .control-btn {
+  background-color: var(--highlight-selected);
+  color: var(--text-primary);
+  border: none;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+}
+
+.game-over-content .control-btn:hover {
+  background-color: var(--highlight-move);
+  transform: scale(1.05);
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Game Over Modal - Flipped for Black Player */
+.game-over-modal.black-player-view .game-over-content {
+  transform: rotate(180deg);
+}
+
+.game-over-modal.black-player-view .game-over-content .control-btn {
+  transform: rotate(180deg);
+}
+
+/* Power Button - Theme-aware with CSS variables */
+.power-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 4px solid var(--power-border);
+  background: var(--power-bg);
+  position: relative;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+  margin: 20px auto 0;
+  display: block;
+}
+
+/* The vertical line (I) */
+.power-btn::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 25px;
+  background-color: var(--power-symbol);
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+}
+
+/* The broken circle top (O) */
+.power-btn::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 30px;
+  border: 4px solid var(--power-symbol);
+  border-top: 4px solid transparent;
+  border-radius: 50%;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+/* --- HOVER STATE (Green) --- */
+.power-btn:hover {
+  border-color: var(--power-hover);
+  box-shadow: 0 0 15px var(--power-hover);
+}
+
+.power-btn:hover::before {
+  background-color: var(--power-hover);
+}
+
+.power-btn:hover::after {
+  border-color: var(--power-hover);
+  border-top-color: transparent;
+}
+
+/* --- ACTIVE STATE (Red when clicked) --- */
+.power-btn:active {
+  border-color: var(--power-active);
+  box-shadow: 0 0 20px var(--power-active);
+  transform: scale(0.95); /* Slight push-down effect */
+}
+
+.power-btn:active::before {
+  background-color: var(--power-active);
+}
+
+.power-btn:active::after {
+  border-color: var(--power-active);
+  border-top-color: transparent;
+}
+
+/* Power button remains unrotated even in black player view */
+.game-over-modal.black-player-view .game-over-content .power-btn {
+  transform: rotate(0deg);
+}
+
+.game-over-modal.black-player-view .game-over-content .power-btn:hover {
+  transform: rotate(0deg);
+}
+
+.game-over-modal.black-player-view .game-over-content .power-btn:active {
+  transform: rotate(0deg) scale(0.95);
+}
+
+@media (max-width: 600px) {
+  .game-over-content {
+    padding: 20px;
+    margin: 20px;
+  }
+  
+  .game-over-title {
+    font-size: 1.5rem;
+  }
+  
+  .game-over-message {
+    font-size: 1.2rem;
+  }
+}
